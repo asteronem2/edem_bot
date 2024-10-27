@@ -470,11 +470,10 @@ async def yes_no(callback: CallbackQuery):
 
     if answer == 'yes':
         markup = []
-
         for i in config.CHATS_FOLDER_IDS:
             res = await bot.create_chat_invite_link(chat_id=i, member_limit=1)
             res2 = await bot.get_chat(chat_id=i)
-            markup.append([IButton(text=res2.first_name, url=res.invite_link)])
+            markup.append([IButton(text=res2.title, url=res.invite_link)])
 
         msg = messages.PaySuccess(id=db_user.user_id)
         msg.markup = markup
