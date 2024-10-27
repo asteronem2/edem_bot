@@ -319,7 +319,7 @@ async def start_update(message: Message):
     await send_message(msg_to_user)
 
     await bot.forward_message(config.ADMIN_ID, user.id, message.message_id)
-    msg_to_admin = messages.AdminCheckCheck(id=user.id)
+    msg_to_admin = messages.AdminCheckCheck(id=config.ADMIN_ID)
     msg_to_admin.text = msg_to_admin.text.format(username=user.username or 'username', month_count=count_month)
     msg_to_admin.markup = [[
         IButton(text='Да', callback_data=f'{db_user.id}/{count_month}/yes'),
