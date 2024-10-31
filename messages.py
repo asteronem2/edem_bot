@@ -34,6 +34,8 @@ class StartMessage(MsgModel):
         [IButton(text='Реферальная система', callback_data='referral')],
         [IButton(text='Что есть в закрытом сообществе', callback_data='more_info')],
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO2ZyNvpVm3K6TTMzdXtfsMfoBKjLgAAqnmMRtJjBhJtM2_LswTZxEBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class GetAccess(MsgModel):
     text: str = """
@@ -44,11 +46,15 @@ class GetAccess(MsgModel):
         [IButton(text='6 месяца (550$)', callback_data='get_access/6_month')],
         [IButton(text='12 месяцев (900$)', callback_data='get_access/12_month')],
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO3ZyNvsyduzKx4VtP6jkjI0AAB6e4DAAKq5jEbSYwYSWDi18AMuFY_AQADAgADeQADNgQ'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class GetAccessXMonth(MsgModel):
     text: str = """
         Выберите способ оплаты
     """
+    photo: str | None = 'AgACAgIAAxkBAAO4ZyNvusnyyxzLWFocdUXcG0iYuKMAAqvmMRtJjBhJjWC0upP_5-sBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class PayAccessCrypto(MsgModel):
     """text.format: day_count pay_amount"""
@@ -59,7 +65,7 @@ class PayAccessCrypto(MsgModel):
 (оплата только USDT, TRC20)
 
 Нажми на кошелек, чтобы скопировать адрес кошелька.
-Кошелёк: <code>TFMMG1eRtyCzLXzPU2EywofXnm9hmXCkZV</code>
+Кошелёк: <blockquote><code>TFMMG1eRtyCzLXzPU2EywofXnm9hmXCkZV</code></blockquote>
 
 После оплаты - отправьте хэш транзакции в чат.
 
@@ -67,7 +73,7 @@ class PayAccessCrypto(MsgModel):
 
 Пример хэша: 5sse4105ae52ec3n2c0d9a372fe2a2ae3edde26jsaf5da72d9f17c9536c24ceb
 
-<i>Если у вас есть промокод, сначала напишите его</i>
+<i>Если у вас есть <b>ПРОМОКОД</b>, сначала напишите его</i>
 
 Скопируйте его и отправьте в бота👇
     """
@@ -84,9 +90,9 @@ class PayAccessRubles(PayAccessCrypto):
 Стоимость: {pay_amount} руб.
 
 Нажми на номер карты, чтобы скопировать.
-Номер карты: <code>2200300136401849</code>
+Номер карты: <blockquote><code>2200300136401849</code></blockquote>
 
-<i>Если у вас есть промокод, сначала напишите его</i>
+<i>Если у вас есть <b>ПРОМОКОД</b>, сначала напишите его</i>
 
 После оплаты - отправьте чек в чат👇
     """
@@ -139,6 +145,8 @@ class MySubscribeActive(MsgModel):
         [IButton(text='Тех. поддержка', callback_data='support')],
         [IButton(text='Назад', callback_data='to_start')]
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO5ZyNvwhoqxee-z1A8tHxC9RR8WrEAAqzmMRtJjBhJ3MJpuCArBZUBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class MySubscribeInactive(MsgModel):
     text: str = """
@@ -151,6 +159,8 @@ class MySubscribeInactive(MsgModel):
         [IButton(text='Реферальная система', callback_data='referral')],
         [IButton(text='Назад', callback_data='to_start')]
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO5ZyNvwhoqxee-z1A8tHxC9RR8WrEAAqzmMRtJjBhJ3MJpuCArBZUBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class Support(MsgModel):
     text: str = """
@@ -163,6 +173,8 @@ class Support(MsgModel):
     markup: List[List[IButton]] = [
         [IButton(text='Назад', callback_data='to_start')]
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO6ZyNvyqdmgmj7jMqLKc8sDveVUsgAAq3mMRtJjBhJGMf4VI7O64cBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class Referral(MsgModel):
     """text.format: balance referral_count referral_url"""
@@ -185,6 +197,8 @@ class Referral(MsgModel):
     markup: List[List[IButton]] = [
         [IButton(text='Назад', callback_data='to_start')]
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO7ZyNv0GMQ4u2QGBkyw1O3KcmZAAGrAAKu5jEbSYwYSTtuWbZa-o5DAQADAgADeQADNgQ'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class MoreInfo(MsgModel):
     text: str = """
@@ -215,6 +229,8 @@ class MoreInfo(MsgModel):
         [IButton(text='ХОЧУ ПОПАСТЬ', callback_data='get_access')],
         [IButton(text='Назад', callback_data='to_start')]
     ]
+    photo: str | None = 'AgACAgIAAxkBAAO8ZyNv1w8hwD9uigTcenSO3JR3HgkAAq_mMRtJjBhJwvGYCZ7R-fsBAAMCAAN5AAM2BA'
+    photo_type: Literal['file_id', 'filename'] = 'file_id'
 
 class Pass(MsgModel):
     text: str = """

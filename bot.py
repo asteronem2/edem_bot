@@ -85,14 +85,21 @@ async def delete_message(model: MsgModel) -> None:
 
 async def update_message(model: messages.MsgModel) -> None:
     try:
-        await bot.edit_message_text(
-            chat_id=model.id,
-            text=model.text,
-            message_id=model.message_id,
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=model.markup) if model.markup else model.markup,
-            disable_web_page_preview=model.disable_web_page_preview,
-            parse_mode=model.parse_mode
-        )
+        if not model.photo:
+            await bot.edit_message_text(
+                chat_id=model.id,
+                text=model.text,
+                message_id=model.message_id,
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=model.markup) if model.markup else model.markup,
+                disable_web_page_preview=model.disable_web_page_preview,
+                parse_mode=model.parse_mode
+            )
+        else:
+            try:
+                await delete_message(model)
+            except aiogram.exceptions.TelegramBadRequest:
+                pass
+            await send_message(model)
     except aiogram.exceptions.TelegramBadRequest:
         try:
             await delete_message(model)
