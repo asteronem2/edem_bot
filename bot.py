@@ -29,8 +29,10 @@ def get_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment_ty
     return photo
 
 def update_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment_type', 'my_subscribe', 'month_price', 'what_in_closed'], new_id: str):
+    with open('config.json', 'r') as read_file:
+        data = json.load(read_file)
+
     with open('config.json', 'w') as write_file:
-        data = json.load(write_file)
         data['photos'][photo_name] = new_id
         json.dump(data, write_file)
     return True
@@ -91,13 +93,15 @@ async def send_message(model: messages.MsgModel) -> Message:
                     disable_notification=model.disable_notifications,
                     parse_mode=model.parse_mode
                 )
+                break
             except aiogram.exceptions.TelegramBadRequest:
+                traceback.print_exc()
                 if model.photo_name:
-                    photo = FSInputFile(model.photo_name)
                     if start is False:
                         break
                     elif start is True:
                         start = False
+                        photo = FSInputFile('photos/' + model.photo_name + '.png')
                 else:
                     return False
         if start is False:
