@@ -95,7 +95,6 @@ async def send_message(model: messages.MsgModel) -> Message:
                 )
                 break
             except aiogram.exceptions.TelegramBadRequest:
-                traceback.print_exc()
                 if model.photo_name:
                     if start is False:
                         break
