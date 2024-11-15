@@ -2,9 +2,11 @@ import asyncio
 import datetime
 import json
 import re
+import time
 import traceback
 from datetime import timezone
 from typing import Union, Literal, List
+import json
 
 import aiogram
 import httpx
@@ -19,6 +21,19 @@ from messages import MsgModel, config
 
 bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode='html'))
 dp = Dispatcher()
+
+def get_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment_type', 'my_subscribe', 'month_price', 'what_in_closed']):
+    with open('config.json', 'r') as read_file:
+        data = json.load(read_file)
+        photo = data['photos'][photo_name]
+    return photo
+
+def update_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment_type', 'my_subscribe', 'month_price', 'what_in_closed'], new_id: str):
+    with open('config.json', 'w') as write_file:
+        data = json.load(write_file)
+        data['photos'][photo_name] = new_id
+        json.dump(data, write_file)
+    return True
 
 async def check_users():
     while True:
@@ -41,7 +56,7 @@ async def check_users():
             traceback.print_exc()
 
 async def send_message(model: messages.MsgModel) -> Message:
-    if not model.photo:
+    if not model.photo and not model.photo_name:
         sent =  await bot.send_message(
             chat_id=model.id,
             text=model.text,
@@ -59,15 +74,35 @@ async def send_message(model: messages.MsgModel) -> Message:
         )
         return sent
     else:
-        sent = await bot.send_photo(
-            chat_id=model.id,
-            caption=model.text,
-            photo=model.photo if model.photo_type == 'file_id' else FSInputFile(model.photo),
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=model.markup) if model.markup else model.markup,
-            reply_to_message_id=model.reply_to_message_id,
-            disable_notification=model.disable_notifications,
-            parse_mode=model.parse_mode
-        )
+        photo = model.photo
+        if model.photo_name:
+            photo = get_photo_id(model.photo_name)
+        if model.photo_type == 'filename':
+            photo = FSInputFile(model.photo)
+        start = True
+        while True:
+            try:
+                sent = await bot.send_photo(
+                    chat_id=model.id,
+                    caption=model.text,
+                    photo=photo,
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=model.markup) if model.markup else model.markup,
+                    reply_to_message_id=model.reply_to_message_id,
+                    disable_notification=model.disable_notifications,
+                    parse_mode=model.parse_mode
+                )
+            except aiogram.exceptions.TelegramBadRequest:
+                if model.photo_name:
+                    photo = FSInputFile(model.photo_name)
+                    if start is False:
+                        break
+                    elif start is True:
+                        start = False
+                else:
+                    return False
+        if start is False:
+            update_photo_id(model.photo_name, sent.photo[-1].file_id)
+
         await BotMessageCore.add(
             type='text',
             text=model.text,
@@ -85,7 +120,7 @@ async def delete_message(model: MsgModel) -> None:
 
 async def update_message(model: messages.MsgModel) -> None:
     try:
-        if not model.photo:
+        if not model.photo and not model.photo_name:
             await bot.edit_message_text(
                 chat_id=model.id,
                 text=model.text,
@@ -360,6 +395,7 @@ async def start_update(message: Message):
     await save_user_message(message, db_user.id)
 
     msg = messages.StartMessage(id=user.id)
+
     msg.text = msg.text.format(first_name=user.first_name or user.username)
     await send_message(msg)
 
@@ -563,5 +599,10 @@ async def more_info(callback: CallbackQuery):
 
 allowed_updates = ['message', 'callback_query']
 async def start_polling():
-    # noinspection PyAsyncCall
-    await dp.start_polling(bot, polling_timeout=300, handle_signals=False, allowed_updates=allowed_updates)
+    while True:
+        try:
+            # noinspection PyAsyncCall
+            await dp.start_polling(bot, polling_timeout=300, handle_signals=False, allowed_updates=allowed_updates)
+        except:
+            time.sleep(10)
+            continue

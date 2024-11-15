@@ -1,8 +1,5 @@
-from datetime import datetime
-
-from sqlalchemy import TIMESTAMP
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker, AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, declared_attr
+from sqlalchemy.orm import DeclarativeBase
 
 DB_URL = 'sqlite+aiosqlite:///db.db'
 

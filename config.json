@@ -1,1 +1,12 @@
-{"enable_promo": true}
+{
+  "enable_promo": true,
+  "photos": {
+    "start": " ",
+    "month_price": " ",
+    "payment_type": " ",
+    "my_subscribe": " ",
+    "referral": " ",
+    "support": " ",
+    "what_in_closed": " "
+  }
+}
