@@ -517,7 +517,10 @@ async def yes_no(callback: CallbackQuery):
     if answer == 'yes':
         markup = []
         for i in config.CHATS_FOLDER_IDS:
-            res = await bot.create_chat_invite_link(chat_id=i, member_limit=1)
+            try:
+                res = await bot.create_chat_invite_link(chat_id=i, member_limit=1)
+            except:
+                continue
             res2 = await bot.get_chat(chat_id=i)
             markup.append([IButton(text=res2.title, url=res.invite_link)])
 
