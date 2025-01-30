@@ -59,7 +59,7 @@ async def check_users():
 
 async def send_message(model: messages.MsgModel) -> Message:
     if not model.photo and not model.photo_name:
-        sent =  await bot.send_message(
+        sent = await bot.send_message(
             chat_id=model.id,
             text=model.text,
             reply_markup=InlineKeyboardMarkup(inline_keyboard=model.markup) if model.markup else model.markup,
@@ -247,15 +247,15 @@ async def start_update(message: Message):
             await UserCore.update(filter_by={'user_id': user.id}, next_msg_info=f'{next_msg_info_split[0]}/{month_count}/{message.message_id}')
             if next_msg_info_split[0] == 'crypto':
                 pay_amount_dict = {
-                    '3': '300',
-                    '6': '550',
-                    '12': '900',
-                    '3,0.3': '210',
-                    '3,0.5': '150',
-                    '6,0.3': '385',
-                    '6,0.5': '275',
-                    '12,0.3': '630',
-                    '12,0.5': '450',
+                    '1': '80',
+                    '3': '200',
+                    '6': '400',
+                    '1,0.3': '24',
+                    '1,0.5': '40',
+                    '3,0.3': '60',
+                    '3,0.5': '100',
+                    '6,0.3': '120',
+                    '6,0.5': '200',
                 }
     
                 msg = messages.PayAccessCrypto(id=user.id, message_id=message.message_id)
@@ -264,15 +264,15 @@ async def start_update(message: Message):
     
             else:
                 pay_amount_dict = {
-                    '3': '30.000',
-                    '6': '55.000',
-                    '12': '90.000',
-                    '3,0.3': '21 000',
-                    '3,0.5': '15 000',
-                    '6,0.3': '38 500',
-                    '6,0.5': '27 500',
-                    '12,0.3': '63 000',
-                    '12,0.5': '45 000',
+                    '1': "8000",
+                    '3': "20000",
+                    '6': "40000",
+                    '1,0.3': "2400",
+                    '1,0.5': "4000",
+                    '3,0.3': "6000",
+                    '3,0.5': "10000",
+                    '6,0.3': "12000",
+                    '6,0.5': "20000",
                 }
     
                 msg = messages.PayAccessRubles(id=user.id, message_id=message.message_id)
@@ -282,15 +282,15 @@ async def start_update(message: Message):
     
     count_month = next_msg_info_split[1]
     month_to_amount = {
-        '3': 300,
-        '6': 550,
-        '12': 900,
-        '3,0.3': 210,
-        '3,0.5': 150,
-        '6,0.3': 385,
-        '6,0.5': 275,
-        '12,0.3': 630,
-        '12,0.5': 450,
+        '1': 80,
+        '3': 200,
+        '6': 400,
+        '1,0.3': 24,
+        '1,0.5': 40,
+        '3,0.3': 60,
+        '3,0.5': 100,
+        '6,0.3': 120,
+        '6,0.5': 200,
     }
     right_amount = month_to_amount[count_month]
 
@@ -441,12 +441,12 @@ async def get_access1(callback: CallbackQuery):
     await update_message(msg)
 
 # кнопка выбора месяцев подписки
-@dp.callback_query(PrivateF(), ReFullmatchF('get_access/(3|6|12)_month'))
+@dp.callback_query(PrivateF(), ReFullmatchF('get_access/(1|3|6)_month'))
 async def get_access2(callback: CallbackQuery):
     cdata = callback.data
     user = callback.from_user
     message = callback.message
-    rres = re.fullmatch(r'get_access/(3|6|12)_month', cdata)
+    rres = re.fullmatch(r'get_access/(1|3|6)_month', cdata)
     month_count = rres.group(1)
 
     msg = messages.GetAccessXMonth(
@@ -461,27 +461,27 @@ async def get_access2(callback: CallbackQuery):
     await update_message(msg)
 
 # кнопка выбора метода оплаты
-@dp.callback_query(PrivateF(), ReFullmatchF('get_access/(3|6|12)(,0.3|.0.5|)_month/(crypto|rubles)'))
+@dp.callback_query(PrivateF(), ReFullmatchF('get_access/(1|3|6)(,0.3|.0.5|)_month/(crypto|rubles)'))
 async def get_access3(callback: CallbackQuery):
     cdata = callback.data
     user = callback.from_user
     message = callback.message
 
-    rres = re.fullmatch(r'get_access/(3|6|12)(|,0.3|.0.5)_month/(crypto|rubles)', cdata)
+    rres = re.fullmatch(r'get_access/(1|3|6)(|,0.3|.0.5)_month/(crypto|rubles)', cdata)
     month_count = rres.group(1) + rres.group(2)
     pay_type = rres.group(3)
 
     if pay_type == 'crypto':
         pay_amount_dict = {
-            '3': '300',
-            '6': '550',
-            '12': '900',
-            '3,0.3': '210',
-            '3,0.5': '150',
-            '6,0.3': '385',
-            '6,0.5': '275',
-            '12,0.3': '630',
-            '12,0.5': '450',
+            '1': '80',
+            '3': '200',
+            '6': '400',
+            '1,0.3': '24',
+            '1,0.5': '40',
+            '3,0.3': '60',
+            '3,0.5': '100',
+            '6,0.3': '120',
+            '6,0.5': '200',
         }
 
         msg = messages.PayAccessCrypto(id=user.id, message_id=message.message_id)
@@ -490,9 +490,9 @@ async def get_access3(callback: CallbackQuery):
 
     elif pay_type == 'rubles':
         pay_amount_dict = {
-            '3': '30.000',
-            '6': '55.000',
-            '12': '90.000'
+            '1': '8.000',
+            '3': '20.000',
+            '6': '40.000'
         }
 
         msg = messages.PayAccessRubles(id=user.id, message_id=message.message_id)
@@ -501,13 +501,13 @@ async def get_access3(callback: CallbackQuery):
 
     await UserCore.update(filter_by={'user_id': user.id}, next_msg_info=f'{pay_type}/{month_count}/{message.message_id}')
 
-@dp.callback_query(PrivateF(), ReFullmatchF('[0-9]+/(3|6|12)(,0.3|,0.5|)/(yes|no)'))
+@dp.callback_query(PrivateF(), ReFullmatchF('[0-9]+/(1|3|6)(,0.3|,0.5|)/(yes|no)'))
 async def yes_no(callback: CallbackQuery):
     cdata = callback.data
     user = callback.from_user
     message = callback.message
 
-    rres = re.fullmatch(r'([0-9]+)/(3|6|12)(,0.3|.0.5|)/(yes|no)', cdata)
+    rres = re.fullmatch(r'([0-9]+)/(1|3|6)(,0.3|.0.5|)/(yes|no)', cdata)
     db_user_id = int(rres.group(1))
     month_count = rres.group(2)
     answer = rres.group(4)
@@ -530,15 +530,15 @@ async def yes_no(callback: CallbackQuery):
 
         will_end_at = datetime.datetime.utcnow() + datetime.timedelta(days=30 * int(month_count))
         month_to_amount = {
-            '3': 30000,
-            '6': 55000,
-            '12': 90000,
-            '3,0.3': 21000,
-            '3,0.5': 15000,
-            '6,0.3': 38500,
-            '6,0.5': 27500,
-            '12,0.3': 63000,
-            '12,0.5': 45000,
+            '1': 8000,
+            '3': 20000,
+            '6': 40000,
+            '1,0.3': 2400,
+            '1,0.5': 4000,
+            '3,0.3': 6000,
+            '3,0.5': 10000,
+            '6,0.3': 12000,
+            '6,0.5': 20000,
         }
         right_amount = month_to_amount[month_count]
         await PaymentCore.add(
