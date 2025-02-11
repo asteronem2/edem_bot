@@ -318,7 +318,7 @@ async def start_update(message: Message):
     if to_address != config.TO_ADDRESS:
         return await send_error()
 
-    amount = json_req['trc20TransferInfo']['amount_str'] / 1000000
+    amount = float(json_req['trc20TransferInfo'][0]['amount_str']) / 1000000
     if amount != right_amount:
         return await send_error()
 
