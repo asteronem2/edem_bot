@@ -1,10 +1,11 @@
 import asyncio
 import datetime
 import json
+import os
 import re
 import time
 import traceback
-from datetime import timezone
+from datetime import timezone, timedelta
 from typing import Union, Literal, List
 import json
 
@@ -14,6 +15,8 @@ from aiogram import Bot, Dispatcher, types as tg_types, F, exceptions
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Filter
 from aiogram.types import InlineKeyboardButton as IButton, InlineKeyboardMarkup, FSInputFile, Message, CallbackQuery
+from mako.compat import win32
+from openpyxl import Workbook
 
 from core import UserCore, UserMessageCore, BotMessageCore, PaymentCore
 import messages
@@ -40,13 +43,12 @@ def update_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment
 async def check_users():
     while True:
         try:
-            await asyncio.sleep(8*60*60)
+            await asyncio.sleep(24*60*60)
             today = datetime.datetime.now()
 
             all_subscribes = await PaymentCore.find_all()
             for subscribe in all_subscribes:
                 if subscribe.will_end_at < today:
-                    await asyncio.sleep(61)
                     user = await UserCore.find_one(id=subscribe.usertable_id)
                     for chat_id in config.CHATS_FOLDER_IDS:
                         await bot.ban_chat_member(
@@ -54,6 +56,11 @@ async def check_users():
                             user_id=user.id
                         )
                     await PaymentCore.delete(id=subscribe.id)
+                    await bot.send_message(chat_id=user.user_id, text="<b>Ваша подписка окончена, вы исключены из чатов</b>")
+                elif (subscribe.will_end_at - today).days == 3:
+                    user = await UserCore.find_one(id=subscribe.usertable_id)
+                    await bot.send_message(chat_id=user.user_id, text="<b>До окончания вашей подписки осталось 3 дня</b>")
+
         except Exception as err:
             traceback.print_exc()
 
@@ -160,7 +167,6 @@ async def save_user_message(message: Message, user_pk: int):
         send_at=message.date,
         message_id=message.message_id
     )
-
 
 class MsgTypeF(Filter):
     message_type = None
@@ -473,19 +479,34 @@ async def get_access3(callback: CallbackQuery):
 
     if pay_type == 'crypto':
         pay_amount_dict = {
-            '1': '80',
-            '3': '200',
-            '6': '400',
-            '1,0.3': '24',
-            '1,0.5': '40',
-            '3,0.3': '60',
-            '3,0.5': '100',
-            '6,0.3': '120',
-            '6,0.5': '200',
+            '1': 80,
+            '3': 200,
+            '6': 400,
+            '1,0.3': 24,
+            '1,0.5': 40,
+            '3,0.3': 60,
+            '3,0.5': 100,
+            '6,0.3': 120,
+            '6,0.5': 200,
         }
 
+        async with httpx.AsyncClient() as client:
+            response = await client.post("https://pay.crypt.bot/api/createInvoice", headers={"Crypto-Pay-API-Token": config.CRYPTO_BOT_TOKEN}, data={
+                "asset": "USDT",
+                "amount": pay_amount_dict[month_count]
+            })
+
+            pay_url = response.json()["result"]["pay_url"]
+            invoice_id = response.json()["result"]["invoice_id"]
+
         msg = messages.PayAccessCrypto(id=user.id, message_id=message.message_id)
-        msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=pay_amount_dict[month_count])
+        msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=str(pay_amount_dict[month_count]))
+        msg.markup = [
+            [IButton(text="Оплатить", url=pay_url)],
+            [IButton(text="Оплатил", callback_data=f"payed?invoice_id={invoice_id}&price={pay_amount_dict[month_count]}&month={month_count}")],
+            [IButton(text='Отмена', callback_data='to_start')]
+        ]
+
         await update_message(msg)
 
     elif pay_type == 'rubles':
@@ -499,7 +520,58 @@ async def get_access3(callback: CallbackQuery):
         msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=pay_amount_dict[month_count])
         await update_message(msg)
 
-    await UserCore.update(filter_by={'user_id': user.id}, next_msg_info=f'{pay_type}/{month_count}/{message.message_id}')
+@dp.callback_query(PrivateF(), ReFullmatchF('payed.+'))
+async def get_access3(callback: CallbackQuery):
+    cdata = callback.data
+    user = callback.from_user
+    message = callback.message
+
+    invoice_id = int(re.search('invoice_id=([^?&/]+)', cdata).group(1))
+    price = int(re.search('price=([^?&/]+)', cdata).group(1))
+    month = int(re.search('month=([^?&/]+)', cdata).group(1))
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post("https://pay.crypt.bot/api/getinvoices",
+                                         headers={"Crypto-Pay-API-Token": config.CRYPTO_BOT_TOKEN}, data={
+                    "invoice_ids": [invoice_id],
+                })
+
+        status = response.json()["result"]["items"][0]["status"]
+
+        if status == "active":
+            await bot.answer_callback_query(callback_query_id=callback.id, text="Вы ещё не произвели оплату", show_alert=True)
+        elif status == "paid":
+            db_user = await UserCore.find_one(user_id=user.id)
+            await delete_message(MsgModel(id=user.id, message_id=message.message_id))
+
+            markup = []
+
+            for i in config.CHATS_FOLDER_IDS:
+                res = await bot.create_chat_invite_link(chat_id=i, member_limit=1)
+                res2 = await bot.get_chat(chat_id=i)
+                markup.append([IButton(text=res2.first_name, url=res.invite_link)])
+
+            msg = messages.PaySuccess(id=user.id)
+            msg.markup = markup
+            await send_message(msg)
+
+            will_end_at = datetime.datetime.utcnow() + datetime.timedelta(days=30 * month)
+            await PaymentCore.add(
+                usertable_id=db_user.id,
+                will_end_at=will_end_at,
+                duration_in_month=month,
+                payment_method='crypto',
+                transaction_hash="",
+                currency='usdt',
+                price=price
+            )
+        else:
+            raise
+    except:
+        traceback.print_exc()
+        await bot.answer_callback_query(callback_query_id=callback.id, text="Что-то не так", show_alert=True)
+
 
 @dp.callback_query(PrivateF(), ReFullmatchF('[0-9]+/(1|3|6)(,0.3|,0.5|)/(yes|no)'))
 async def yes_no(callback: CallbackQuery):
@@ -602,6 +674,75 @@ async def referral(callback: CallbackQuery):
 async def more_info(callback: CallbackQuery):
     user = callback.from_user
     await update_message(messages.MoreInfo(id=user.id, message_id=callback.message.message_id))
+
+@dp.message(PrivateF(), MsgTypeF('text'))
+async def table(message: Message):
+    if message.from_user.id == config.ADMIN_ID:
+        if message.text.lower().strip() in ("таблица", "table", "/table"):
+            file_name = 'users_table.xlsx'
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = 'Выгрузка базы данных'
+
+            res = await PaymentCore.find_all()
+
+            ws.column_dimensions['A'].width = 3
+            ws.column_dimensions['B'].width = 13
+            ws.column_dimensions['C'].width = 20
+            ws.column_dimensions['D'].width = 40
+            ws.column_dimensions['E'].width = 10
+            ws.column_dimensions['E'].width = 10
+
+            ws.cell(row=1, column=1, value='ID')
+            ws.cell(row=1, column=2, value='USERNAME')
+            ws.cell(row=1, column=3, value='СУММА ОПЛАТЫ')
+            ws.cell(row=1, column=4, value='ДАТА ОПЛАТЫ')
+            ws.cell(row=1, column=5, value='СРОК')
+            ws.cell(row=1, column=6, value='ОПЛАТА ПО СЧËТУ')
+
+            row = 2
+
+            user_payment_count = {}
+
+            all_payments_count = 0
+            thirty_days_payments_count = 0
+            month_payments_count = 0
+
+            today = datetime.datetime.now()
+
+            for i in res:
+                if user_payment_count.get(i.usertable_id):
+                    user_payment_count[i.usertable_id] += 1
+                else:
+                    user_payment_count[i.usertable_id] = 1
+
+                all_payments_count += 1
+                if (today - i.bought_at).days < 30:
+                    thirty_days_payments_count += 1
+                if today.month == i.bought_at.month and today.year == i.bought_at.year:
+                    month_payments_count += 1
+
+                user = await UserCore.find_one(id=i.usertable_id)
+                ws.cell(row=row, column=1, value=user.id)
+                ws.cell(row=row, column=2, value=user.username or "Без юзернейма")
+                ws.cell(row=row, column=3, value=i.price)
+                ws.cell(row=row, column=4, value=i.bought_at)
+                ws.cell(row=row, column=5, value=str(i.duration_in_month) + " мес.")
+                ws.cell(row=row, column=6, value=str(user_payment_count[i.usertable_id]))
+                row += 1
+
+            wb.save(file_name)
+
+            caption = "Всего оплат: <b>" + str(all_payments_count) + "</b>\nОплат за 30 дней: <b>" + str(thirty_days_payments_count) + "</b>\nОплат за месяц: <b>" + str(month_payments_count) + "</b>"
+
+            await bot.send_document(
+                chat_id=message.from_user.id,
+                document=FSInputFile(file_name),
+                caption=caption
+            )
+            os.remove(file_name)
+
 
 allowed_updates = ['message', 'callback_query']
 async def start_polling():

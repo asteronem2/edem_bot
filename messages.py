@@ -43,9 +43,9 @@ class GetAccess(MsgModel):
 Какой срок?
     """
     markup: List[List[IButton]] = [
-        [IButton(text='1 месяц (80$)', callback_data='get_access/1_month')],
-        [IButton(text='3 месяца (200$)', callback_data='get_access/3_month')],
-        [IButton(text='6 месяцев (400$)', callback_data='get_access/6_month')],
+        [IButton(text='1 месяц (80$)', callback_data='get_access/1_month/crypto')],
+        [IButton(text='3 месяца (200$)', callback_data='get_access/3_month/crypto')],
+        [IButton(text='6 месяцев (400$)', callback_data='get_access/6_month/crypto')],
     ]
 
 class GetAccessXMonth(MsgModel):
@@ -61,25 +61,7 @@ class PayAccessCrypto(MsgModel):
 Период подписки: {day_count} дней
 
 Стоимость: {pay_amount}$
-(оплата только USDT, TRC20)
-
-Нажми на кошелек, чтобы скопировать адрес кошелька.
-Кошелёк: <blockquote><code>TFMMG1eRtyCzLXzPU2EywofXnm9hmXCkZV</code></blockquote>
-
-После оплаты - отправьте хэш транзакции в чат.
-
-Пример хэша — он содержится в транзакции, которую вы отправили. Если перевод был с биржи, найдите его в данных платежа.
-
-Пример хэша: 5sse4105ae52ec3n2c0d9a372fe2a2ae3edde26jsaf5da72d9f17c9536c24ceb
-
-<i>Если у вас есть <b>ПРОМОКОД</b>, сначала напишите его</i>
-
-Скопируйте его и отправьте в бота👇
     """
-
-    markup: List[List[IButton]] = [
-        [IButton(text='Отмена', callback_data='to_start')],
-    ]
 
 class PayAccessRubles(PayAccessCrypto):
     """text.format: day_count pay_amount"""
