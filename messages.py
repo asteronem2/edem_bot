@@ -43,9 +43,9 @@ class GetAccess(MsgModel):
 Какой срок?
     """
     markup: List[List[IButton]] = [
-        [IButton(text='1 месяц (80$)', callback_data='get_access/1_month/crypto')],
-        [IButton(text='3 месяца (200$)', callback_data='get_access/3_month/crypto')],
-        [IButton(text='6 месяцев (400$)', callback_data='get_access/6_month/crypto')],
+        [IButton(text='1 месяц - 80$ (-23% = 61$)', callback_data='get_access/1_month/crypto')],
+        [IButton(text='3 месяца 200$ (-23% = 154$)', callback_data='get_access/3_month/crypto')],
+        [IButton(text='6 месяцев 400$ (-23% - 268$)', callback_data='get_access/6_month/crypto')],
     ]
 
 class GetAccessXMonth(MsgModel):

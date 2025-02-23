@@ -25,6 +25,18 @@ from messages import MsgModel, config
 bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode='html'))
 dp = Dispatcher()
 
+month_to_amount = {
+    '1': 61,
+    '3': 154,
+    '6': 268,
+    '1,0.3': 24,
+    '1,0.5': 40,
+    '3,0.3': 60,
+    '3,0.5': 100,
+    '6,0.3': 120,
+    '6,0.5': 200,
+}
+
 def get_photo_id(photo_name: Literal['start', 'support', 'referral', 'payment_type', 'my_subscribe', 'month_price', 'what_in_closed']):
     with open('config.json', 'r') as read_file:
         data = json.load(read_file)
@@ -252,52 +264,12 @@ async def start_update(message: Message):
                 month_count = next_msg_info_split[1]
             await UserCore.update(filter_by={'user_id': user.id}, next_msg_info=f'{next_msg_info_split[0]}/{month_count}/{message.message_id}')
             if next_msg_info_split[0] == 'crypto':
-                pay_amount_dict = {
-                    '1': '80',
-                    '3': '200',
-                    '6': '400',
-                    '1,0.3': '24',
-                    '1,0.5': '40',
-                    '3,0.3': '60',
-                    '3,0.5': '100',
-                    '6,0.3': '120',
-                    '6,0.5': '200',
-                }
-    
                 msg = messages.PayAccessCrypto(id=user.id, message_id=message.message_id)
-                msg.text = msg.text.format(day_count=str(int(month_count.split(',')[0]) * 30), pay_amount=pay_amount_dict[month_count])
-                await update_message(msg)
-    
-            else:
-                pay_amount_dict = {
-                    '1': "8000",
-                    '3': "20000",
-                    '6': "40000",
-                    '1,0.3': "2400",
-                    '1,0.5': "4000",
-                    '3,0.3': "6000",
-                    '3,0.5': "10000",
-                    '6,0.3': "12000",
-                    '6,0.5': "20000",
-                }
-    
-                msg = messages.PayAccessRubles(id=user.id, message_id=message.message_id)
-                msg.text = msg.text.format(day_count=str(int(month_count.split(',')[0]) * 30), pay_amount=pay_amount_dict[month_count])
+                msg.text = msg.text.format(day_count=str(int(month_count.split(',')[0]) * 30), pay_amount=str(month_to_amount[month_count]))
                 await update_message(msg)
             return
     
     count_month = next_msg_info_split[1]
-    month_to_amount = {
-        '1': 80,
-        '3': 200,
-        '6': 400,
-        '1,0.3': 24,
-        '1,0.5': 40,
-        '3,0.3': 60,
-        '3,0.5': 100,
-        '6,0.3': 120,
-        '6,0.5': 200,
-    }
     right_amount = month_to_amount[count_month]
 
     async def send_error():
@@ -478,46 +450,24 @@ async def get_access3(callback: CallbackQuery):
     pay_type = rres.group(3)
 
     if pay_type == 'crypto':
-        pay_amount_dict = {
-            '1': 80,
-            '3': 200,
-            '6': 400,
-            '1,0.3': 24,
-            '1,0.5': 40,
-            '3,0.3': 60,
-            '3,0.5': 100,
-            '6,0.3': 120,
-            '6,0.5': 200,
-        }
 
         async with httpx.AsyncClient() as client:
             response = await client.post("https://pay.crypt.bot/api/createInvoice", headers={"Crypto-Pay-API-Token": config.CRYPTO_BOT_TOKEN}, data={
                 "asset": "USDT",
-                "amount": pay_amount_dict[month_count]
+                "amount": month_to_amount[month_count]
             })
 
             pay_url = response.json()["result"]["pay_url"]
             invoice_id = response.json()["result"]["invoice_id"]
 
         msg = messages.PayAccessCrypto(id=user.id, message_id=message.message_id)
-        msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=str(pay_amount_dict[month_count]))
+        msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=str(month_to_amount[month_count]))
         msg.markup = [
             [IButton(text="Оплатить", url=pay_url)],
-            [IButton(text="Оплатил", callback_data=f"payed?invoice_id={invoice_id}&price={pay_amount_dict[month_count]}&month={month_count}")],
+            [IButton(text="Оплатил", callback_data=f"payed?invoice_id={invoice_id}&price={month_to_amount[month_count]}&month={month_count}")],
             [IButton(text='Отмена', callback_data='to_start')]
         ]
 
-        await update_message(msg)
-
-    elif pay_type == 'rubles':
-        pay_amount_dict = {
-            '1': '8.000',
-            '3': '20.000',
-            '6': '40.000'
-        }
-
-        msg = messages.PayAccessRubles(id=user.id, message_id=message.message_id)
-        msg.text = msg.text.format(day_count=str(int(month_count) * 30), pay_amount=pay_amount_dict[month_count])
         await update_message(msg)
 
 @dp.callback_query(PrivateF(), ReFullmatchF('payed.+'))
@@ -571,60 +521,6 @@ async def get_access3(callback: CallbackQuery):
     except:
         traceback.print_exc()
         await bot.answer_callback_query(callback_query_id=callback.id, text="Что-то не так", show_alert=True)
-
-
-@dp.callback_query(PrivateF(), ReFullmatchF('[0-9]+/(1|3|6)(,0.3|,0.5|)/(yes|no)'))
-async def yes_no(callback: CallbackQuery):
-    cdata = callback.data
-    user = callback.from_user
-    message = callback.message
-
-    rres = re.fullmatch(r'([0-9]+)/(1|3|6)(,0.3|.0.5|)/(yes|no)', cdata)
-    db_user_id = int(rres.group(1))
-    month_count = rres.group(2)
-    answer = rres.group(4)
-
-    db_user = await UserCore.find_one(id=db_user_id)
-
-    if answer == 'yes':
-        markup = []
-        for i in config.CHATS_FOLDER_IDS:
-            try:
-                res = await bot.create_chat_invite_link(chat_id=i, member_limit=1)
-            except:
-                continue
-            res2 = await bot.get_chat(chat_id=i)
-            markup.append([IButton(text=res2.title, url=res.invite_link)])
-
-        msg = messages.PaySuccess(id=db_user.user_id)
-        msg.markup = markup
-        await send_message(msg)
-
-        will_end_at = datetime.datetime.utcnow() + datetime.timedelta(days=30 * int(month_count))
-        month_to_amount = {
-            '1': 8000,
-            '3': 20000,
-            '6': 40000,
-            '1,0.3': 2400,
-            '1,0.5': 4000,
-            '3,0.3': 6000,
-            '3,0.5': 10000,
-            '6,0.3': 12000,
-            '6,0.5': 20000,
-        }
-        right_amount = month_to_amount[month_count]
-        await PaymentCore.add(
-            usertable_id=db_user.id,
-            will_end_at=will_end_at,
-            duration_in_month=int(month_count),
-            payment_method='bank_money',
-            currency='usdt',
-            price=right_amount
-        )
-    else:
-        await send_message(messages.PayError(id=db_user.user_id))
-
-    await delete_message(MsgModel(id=user.id, message_id=message.message_id))
 
 @dp.callback_query(PrivateF(), F.data == 'my_subscribe')
 async def my_subscribe(callback: CallbackQuery):
