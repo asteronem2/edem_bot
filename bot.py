@@ -441,7 +441,6 @@ async def start_update(message: Message):
 @dp.message(PrivateF(), MsgTypeF('text'), F.text[:6] == '/start')
 async def start_update(message: Message):
     try:
-        raise "asgfsjhgkfdakdsfugiehwj"
         user = message.from_user
         text = message.text
         db_user = await UserCore.find_one(user_id=user.id)
